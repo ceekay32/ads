@@ -1,0 +1,95 @@
+import pandas as pd
+import numpy as np
+import scipy.stats as stats
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+from scipy.stats import ttest_1samp, ttest_ind, f_oneway, shapiro
+from statsmodels.stats.weightstats import ztest
+
+# Load the dataset
+dataset = pd.read_csv('/content/AirQualityUCI - empty.csv')
+
+# Z-test
+dataset = dataset.dropna()
+sample_mean = dataset['RH'].mean()
+pop_mean = 49
+
+# assumed population mean from the average italian Relative humidity over last few years 
+sample_std = dataset['RH'].std()
+n = len(dataset)
+z_score = (sample_mean - pop_mean) / (sample_std / np.sqrt(n))
+p_value = stats.norm.sf(abs(z_score)) * 2  # two-tailed test
+print('Z-score:', z_score)
+print('P-value:', p_value)
+
+# T-test
+dataset = dataset.dropna(subset=['RH'])
+sample_mean = dataset['RH'].mean()
+pop_mean = 49  # assumed population mean
+sample_std = dataset['RH'].std()
+n = len(dataset)
+t_score, p_value = ttest_1samp(dataset['RH'], pop_mean)
+print('T-score:', t_score)
+print('P-value:', p_value)
+
+
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+model = ols('RH ~ C(T)', data=dataset).fit()
+anova_table = sm.stats.anova_lm(model, typ=2)
+print(anova_table)
+
+
+dataset.drop(["Date","Time"],axis="columns",inplace=True)
+# dataset['RH'] = dataset['RH'].fillna("low")
+
+
+dataset.head()
+
+import pandas as pd
+import numpy as np
+from scipy.stats import norm
+from scipy.stats import ttest_ind, ttest_1samp, f_oneway, shapiro
+from statsmodels.stats.weightstats import ztest
+# 2-sample t-test
+df = pd.read_csv('air_qual_ver2.csv')
+# Define the samples
+sample1 = df[df['RH'] == 0]['CO(GT)']
+sample2 = df[df['RH'] == 1]['CO(GT)']
+
+# Perform the t-test
+t_stat, p_value = ttest_ind(sample1, sample2)
+
+# Print the results
+print("2-sample t-test results:")
+print("t-statistic: ", t_stat)
+print("p-value: ", p_value)
+
+num_rows = len(df['RH'])
+
+# Print the result
+print("Number of rows in the column:", num_rows)
+
+
+# Z-test
+mean1 = sample1.mean()
+mean2 = sample2.mean()
+std1 = sample1.std()
+std2 = sample2.std()
+n1 = len(sample1)
+n2 = len(sample2)
+
+n = 1800  
+# number of samples to select
+group1 = df.sample(n)['CO(GT)']
+group2 = df.sample(n)['CO(GT)']
+group3 = df.sample(n)['CO(GT)']
+
+# Perform ANOVA test
+f_stat, p_value = f_oneway(group1, group2, group3)
+
+# Print results
+print("ANOVA results:")
+print("f-statistic:", f_stat)
+print("p-value:", p_value)

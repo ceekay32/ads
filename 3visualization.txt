@@ -1,0 +1,48 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from scipy import stats
+from scipy.stats import poisson
+import statistics as st
+import matplotlib.pyplot as plt
+
+data=pd.read_csv("AirQualityUCI - empty.csv")
+
+data.corr()
+
+sns.heatmap(data.corr(),annot=True)
+
+x = data.drop(['Date','Time'],axis = 1)
+x.dtypes
+
+sns.distplot(data["CO(GT)"],kde=True)
+plt.show()
+
+plt.figure(figsize=(10,10))
+sns.boxplot(data=data)
+plt.show()
+
+plt.figure(figsize=(10,7))
+sns.histplot(data)
+plt.show()
+
+#Removing temperature, Relative Humidity and Absolute Humidity
+df1=x.drop(['T', 'RH', 'AH'],axis=1)
+
+plt.figure(figsize=(10,10))
+plt.gcf().text(.5, .9, "Scatter Plot", fontsize = 40, color='Black' ,ha='center', va='center')
+sns.scatterplot(x=data["CO(GT)"] , y=data['T'])
+plt.show()
+
+for i in x:
+    sns.boxplot(data[i])
+    plt.show()
+
+data["Date"] = data["Date"].astype("datetime64")
+for i in x.columns:
+    plt.figure(figsize=(16,6))
+    plt.title("Air quality vs diffrent Parameters",fontsize = 14)
+    sns.set(rc={"axes.facecolor":"#283747", "axes.grid":False,'xtick.labelsize':10,'ytick.labelsize':10})
+    plt.xticks(rotation=45) # Rotating X tickts by 45 degrees
+    sns.lineplot(x=data['Date'],y=data[i])
+    plt.show()

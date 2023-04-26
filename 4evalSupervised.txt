@@ -1,0 +1,145 @@
+import pandas as pd
+df = pd.read_csv("/content/AirQualityUCI - empty.csv")
+df.head()
+
+df = df.fillna(df.mean())
+df.head()
+
+df.describe()
+
+
+df.drop(["Date","Time"],axis="columns",inplace=True)
+df['RH'] = df['RH'].fillna("low")
+df.head()
+
+df["RH"] = pd.cut(df.RH, bins=[0, 50, 100],  labels=[ "low", "high"])
+
+#encoding
+# df.RH = df.RH.map({ 'low': 0,'medium': 1,'high':2,'extremely high':3})
+# df.head()
+df.RH = df.RH.map({ 'low': 0,'high':1})
+df.head()
+
+
+inputs = df.drop(["RH"],axis="columns")
+inputs.head()
+
+from sklearn.preprocessing import MinMaxScaler
+
+#normalize
+scaler = MinMaxScaler()
+scaler.fit(inputs)
+df_normalized = pd.DataFrame(scaler.transform(inputs), columns=inputs.columns)
+df_normalized.head()
+
+target = df.RH
+target.head()
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+X_train, X_test, y_train, y_test = train_test_split(df_normalized, target, test_size=0.3)
+
+# clf = DecisionTreeClassifier()
+clf = KNeighborsClassifier()
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+
+from sklearn.metrics import confusion_matrix  
+cm= confusion_matrix(y_test, y_pred) 
+print(cm)
+
+from sklearn.metrics import accuracy_score
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+error_rate = 1 - accuracy
+print("Error rate:", error_rate)
+
+from sklearn.metrics import precision_score
+precision = precision_score(y_test, y_pred,average='micro')
+print("Precision:", precision)
+
+from sklearn.metrics import classification_report
+tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+sensitivity = tp / (tp + fn)
+print("Sensitivity, Recall, Power:", sensitivity)
+
+specificity = tn / (tn + fp)
+print("Specificity:", specificity)
+
+from sklearn.metrics import roc_auc_score
+roc_auc = roc_auc_score(y_test, y_pred)
+print("ROC AUC Score:", roc_auc)
+
+from sklearn.metrics import f1_score
+f1 = f1_score(y_test, y_pred)
+print("F1 Score:", f1)
+
+import math
+geometric_mean = math.sqrt(sensitivity*specificity)
+print("Geometric mean: ", geometric_mean)
+
+print("False Positive Rate: ", 1-specificity)
+
+print("False Negative Rate: ", 1-sensitivity)
+
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+
+fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+
+plt.plot(fpr, tpr)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.show()
+
+# **Regression**
+X = df_normalized["CO(GT)"]
+Y = df_normalized["PT08.S1(CO)"]
+
+#**Karl pearson's coefficient of correlation*
+from scipy.stats import pearsonr
+corr, _ = pearsonr(X, Y)
+print("Karl Pearson's coefficient of correlation:", corr)
+
+#**Coefficient of Determination(R-squared)**
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+reg = LinearRegression()
+
+X = X.values
+X = X.reshape(-1, 1)
+
+reg.fit(X, Y)
+y_pred = reg.predict(X)
+r_squared = r2_score(Y, y_pred)
+print("R-squared:", r_squared)
+
+#mse
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(Y, y_pred)
+print("Mean Squared Error:", mse)
+
+#rmse
+import math
+rmse = math.sqrt(mse)
+print("RMSE:", rmse)
+
+#root mean square relative error
+import numpy as np
+num = np.sum(np.square(Y - y_pred))
+den = np.sum(np.square(y_pred))
+n = Y.shape[0]
+squared_error = num/(n*den)
+rmsre = np.sqrt(squared_error)
+print("RMSRE:",rmsre)
+
+#mae
+from sklearn.metrics import mean_absolute_error
+mae = mean_absolute_error(Y, y_pred)
+print("MAE:", mae)
+
+#mape
+print("MAPE:", mae*100, end="%")

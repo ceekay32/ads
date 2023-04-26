@@ -1,0 +1,136 @@
+#code not working
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("AirQualityUCI - empty.csv")
+print(df.count())
+
+df = df.fillna(df.mean())
+df.head()
+
+print("After cleaning")
+df.count()
+
+dataset = df.drop(['Date','Time'], axis = 'columns')
+
+col_to_cluster = [ 'RH','T', 'CO(GT)']
+x = dataset[col_to_cluster].values
+
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.4,random_state=1)
+
+from sklearn.preprocessing import StandardScaler
+sc=StandardScaler()
+x_train=sc.fit_transform(x_train)
+x_test=sc.transform(x_test)
+
+# from sklearn.cluster import KMeans
+# kmeans = KMeans(n_clusters=3, init='k-means++', random_state=42)
+# kmeans.fit(x_train)
+
+from sklearn.cluster import KMeans
+
+# Determine optimal number of clusters using the elbow method
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+    kmeans.fit(dataset)
+    wcss.append(kmeans.inertia_)
+plt.plot(range(1, 11), wcss)
+plt.title('Elbow Method')
+plt.xlabel('Number of Clusters')
+plt.ylabel('WCSS')
+plt.show()
+
+# # Based on the elbow plot, choose the optimal number of clusters (e.g. k = 3)
+# k = 5
+
+# # Perform k-means clustering
+# kmeans = KMeans(n_clusters=k, init='k-means++', random_state=42)
+# y_test_pred = kmeans.fit_predict(dataset)
+
+
+# Select columns for clustering
+k=3
+kmeans = KMeans(n_clusters=k, init='k-means++', random_state=42)
+labels = kmeans.fit_predict(x_test)
+y_test_pred = kmeans.predict(x_test)
+y_train_pred = kmeans.predict(x_train)
+
+# Plot the clusters in 3D
+from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.scatter(x_test[:, 0], x_test[:, 1], x_test[:, 2], c=labels)
+
+ax.set_xlabel('RH')
+ax.set_ylabel('T')
+ax.set_zlabel('CO(GT)')
+
+plt.show()
+
+unique_labels = np.unique(y_test_pred)
+print(unique_labels)
+
+from sklearn.metrics import silhouette_score
+silhouette_avg = silhouette_score(x_test, y_test_pred)
+print("Silhouette Score:", silhouette_avg)
+
+from sklearn.metrics import rand_score
+y_train_label = y_train[:, 0]
+y_test_label = y_test[:, 0]
+train_ri = rand_score(y_train_label, y_train_pred)
+test_ri = rand_score(y_test_label, y_test_pred)
+print(f"Train Rand Index: {train_ri:.4f}")
+print(f"Test Rand Index: {test_ri:.4f}")
+
+
+#----------------------Alternate------------------------------------------------
+from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+df = pd.read_csv("london_weather.csv")
+
+df.drop(['date'], axis='columns', inplace=True)
+sunshine_median = df['sunshine'].median()
+df = df.fillna(df.median())
+
+transform = lambda x: 1 if x >= sunshine_median else 0
+df['sunshine'] = df['sunshine'].apply(transform)
+
+X = df.drop('sunshine', axis='columns')
+y = df.sunshine
+
+scaler = MinMaxScaler()
+X_sc = scaler.fit_transform(X)
+print(X_sc)     # numpy array
+df_scaled = pd.DataFrame(X_sc, columns=X.columns)
+print(df_scaled.head())
+
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+cor = X.corr()
+plt.figure(figsize=(12, 10))
+sns.heatmap(cor, annot=True)
+
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(X_sc)
+y_pred = kmeans.fit_predict(X_sc)
+
+labels = kmeans.labels_
+centroids = kmeans.cluster_centers_
+
+# Extrinsince metrics: Rand index, Rand score, Mutual info
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, rand_score
+print(adjusted_rand_score(y, y_pred)) # rand index
+print(rand_score(y, y_pred)) # rand score
+print(normalized_mutual_info_score(y, y_pred)) #mutual info
+
+# Intrinsic metrics: Silhouette Coefficient
+from sklearn.metrics import silhouette_score
+print(silhouette_score(X, labels))

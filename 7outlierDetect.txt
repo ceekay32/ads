@@ -1,0 +1,104 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
+
+df = pd.read_csv("/content/AirQualityUCI - empty.csv")
+df.head
+
+sns.distplot(df['CO(GT)'])
+plt.xlabel('Carbon Monoxide')
+plt.show()
+plt.rcParams['figure.figsize'] = [4, 4]
+
+sns.boxplot(data=df[['CO(GT)', 'NO2(GT)', 'C6H6(GT)']])
+plt.title('BoxPlot')
+plt.show()
+
+plt.scatter(df['CO(GT)'],df['T'])
+plt.xlabel('CO mg/m^3')
+plt.ylabel('Temperature')
+plt.show()  
+
+
+plt.scatter(df['CO(GT)'],df['RH'])
+plt.xlabel('CO mg/m^3')
+plt.ylabel('Relative Humidity')
+plt.show()
+
+
+df = df.fillna(df.mean())
+
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
+X = df[['CO(GT)','T']].values
+# instantiate model
+nbrs = NearestNeighbors(n_neighbors = 3)
+# fit model
+nbrs.fit(X)
+# distances and indexes of k-neaighbors from model outputs
+distances, indexes = nbrs.kneighbors(X)
+# plot mean of k-distances of each observation
+plt.plot(distances.mean(axis =1))
+plt.rcParams['figure.figsize'] = [2, 2]
+
+# visually determine cutoff values > .6
+outlier_index = np.where(distances.mean(axis = 1) > .6)
+outlier_index
+
+outlier_values = df[['CO(GT)','T']].iloc[outlier_index]
+outlier_values
+
+plt.scatter(df["CO(GT)"], df["T"], color = "b")
+# plot outlier values
+plt.scatter(outlier_values["CO(GT)"], outlier_values["T"], color = "r")
+
+#Density Based Outlier Using LOF
+from sklearn.neighbors import LocalOutlierFactor
+# Load dataset
+X = df[['CO(GT)','T']].values
+# Fit LOF model
+n_neighbors = 94
+contamination = 0.00001
+lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination)
+y_pred = lof.fit_predict(X)
+# Identify outliers
+outliers = np.where(y_pred == -1)[0]
+print(outliers)
+
+# filter outlier values
+outlier_values = df[['CO(GT)','T']].iloc[outliers]
+outlier_values
+
+# plot data
+plt.scatter(df["CO(GT)"], df["T"], color = "b")
+# plot outlier values
+plt.scatter(outlier_values["CO(GT)"], outlier_values["T"], color = "r")
+
+sns.distplot(df['CO(GT)'])
+sns.boxplot(df['CO(GT)'])
+plt.show()
+
+upper_limit = df['CO(GT)'].quantile(0.99)
+lower_limit = df['CO(GT)'].quantile(0.01)
+print(lower_limit,upper_limit)
+
+#trimming
+new_df = df[(df['CO(GT)'] <= 3) & (df['CO(GT)'] >= 1)]
+new_df['CO(GT)'].head()
+
+###Compare the distribution and box-plot after trimming.
+sns.distplot(new_df['CO(GT)'])
+sns.boxplot(new_df['CO(GT)'])
+
+###Apply Capping (Winsorization)
+df['CO(GT)'] = np.where(df['CO(GT)'] >= upper_limit, upper_limit,
+                        np.where(df['CO(GT)'] <= lower_limit, lower_limit,
+                                 df['CO(GT)']))
+
+
+###COMPARE THE DISTRIBUTION AND BOX-PLOT AFTER CAPPING
+sns.distplot(new_df['CO(GT)'])
+sns.boxplot(new_df['CO(GT)'])

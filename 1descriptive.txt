@@ -1,0 +1,121 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.stats import poisson
+import statistics as st
+
+df = pd.read_csv("AirQualityUCI - empty.csv")
+
+df1=df.dropna()
+df1
+
+df.describe()
+df.corr()
+df.var()
+df.cumsum()
+df.median()
+df.mode().iloc[0]
+df.isna().sum()
+df.skew()
+df.kurt()
+
+#scatterplot
+plt.scatter(df["NO2(GT)"],df["CO(GT)"])
+plt.figure(figsize=(12,8))
+sns.boxplot(data=df[['CO(GT)','C6H6(GT)','NOx(GT)','NO2(GT)']])
+plt.show()
+
+#boxplot
+plt.figure(figsize=(10,10))
+sns.boxplot(data=df)
+plt.show()
+
+#heatmap
+sns.heatmap(df.corr(),annot=True)
+
+df.hist()
+
+#histogram
+plt.figure(figsize=(15,18))
+plt.hist(df[["PT08.S2(NMHC)","PT08.S3(NOx)","PT08.S4(NO2)"]],bins=10)
+
+#poisson
+x = df.RH
+y = poisson.pmf(x, mu=40, loc=10)
+
+plt.figure(figsize=(15,8))
+plt.plot(x,y)
+
+st.pvariance(df['CO(GT)'])
+st.pvariance(df['PT08.S1(CO)'])
+st.pvariance(df['C6H6(GT)'])
+
+mean=df['NOx(GT)'].mean()
+print(mean)
+std = np.std(df['NOx(GT)'])
+print(std)
+
+from scipy.stats import norm,poisson
+x = np.linspace(mean-3*std,mean+3*std,100)
+pdf = norm.pdf(x,mean,std)
+plt.plot(x,pdf,label='Normal Distribution')
+
+x_poison = np.arange(0,max(df['NOx(GT)'])+1)
+mu = mean
+poisson_dist = poisson.pmf(x_poison,mu)
+plt.plot(x_poison,poisson_dist,label='poisson distribution')
+
+#CONFIDENCE INTERVAL & SAMPLING ERROR
+from scipy.stats import t
+x = df['PT08.S3(NOx)']
+m = x.mean()
+print("Mean =",m)
+s = x.std()
+dof = len(x)-1
+confidence = 0.95
+t_crit = np.abs(t.ppf((1-confidence)/2,dof))
+print("Sampling Error =",s*t_crit/np.sqrt(len(x)))
+
+
+from scipy import stats
+pop_mean = df1['PT08.S3(NOx)'].mean()
+pop_std = df1['PT08.S3(NOx)'].std(ddof=1)
+n = df1['PT08.S3(NOx)'].shape[0]
+se = pop_std / np.sqrt(n)
+z = stats.norm.ppf(0.975)
+pop_mean_ci = (pop_mean - z * se, pop_mean + z * se)
+print("95% confidence interval for population mean:", pop_mean_ci)
+sample_data = df['PT08.S3(NOx)'].sample(n=100, random_state=42)
+sample_mean = sample_data.mean()
+sample_std = sample_data.std(ddof=1)
+n = sample_data.shape[0]
+se = sample_std / np.sqrt(n)
+t = stats.t.ppf(0.975, df=n-1)
+sample_mean_ci = (sample_mean - t * se, sample_mean + t * se)
+print("95% confidence interval for sample mean:", sample_mean_ci)
+
+from scipy.stats import norm
+mean = 50
+alpha = 0.05
+sample = df1["PT08.S3(NOx)"].sample(n=100, random_state=42,replace=True)
+sample_mean = np.mean(sample)
+sample_std = np.std(sample, ddof=1)
+z = (sample_mean - mean) / (sample_std / np.sqrt(len(sample)))
+z_value = 2 * (1 - norm.cdf(abs(z)))
+if z_value < alpha:
+ print("Reject null hypothesis")
+else:
+ print("Fail to reject null hypothesis")
+
+
+# ANOVA
+from scipy.stats import f_oneway
+f_stat, p_val = f_oneway(df1['PT08.S3(NOx)'],df1['PT08.S1(CO)'],df1['C6H6(GT)'])
+print("F-statistic:", f_stat)
+print("p-value:", p_val)
+if p_val < 0.05:
+ print("There is a statistically significant difference between the means.")
+else:
+ print("There is not a statistically significant difference between the means.")
